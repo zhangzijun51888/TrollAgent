@@ -18,20 +18,18 @@ jobs:
       - name: Install toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang lld make git perl rsync \
-            libplist-utils libssl-dev dpkg fakeroot xz-utils zip unzip curl \
-            gnupg ca-certificates
-          # theos 需要 ldid：优先用 deb 直装，失败则从源码编译
-          curl -fsSL -o /tmp/ldid.deb https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux_x86_64.deb || true
-          if [ -s /tmp/ldid.deb ]; then sudo dpkg -i /tmp/ldid.deb || true; fi
-          command -v ldid || echo "ldid missing, will build from source"
-          sudo git clone --depth 1 https://github.com/ProcursusTeam/ldid.git /tmp/ldid-src || true
-          if ! command -v ldid && [ -d /tmp/ldid-src ]; then
-            cd /tmp/ldid-src && sudo git submodule update --init --recursive
-            sudo make -j"$(nproc)" || true
-            sudo cp ldid /usr/local/bin/ldid || true
-          fi
-          ldid -v || true
+          sudo apt-get install -y clang lld make git perl rsync dpkg fakeroot \
+            xz-utils zip unzip curl ca-certificates libssl-dev zlib1g-dev \
+            libplist-dev libcnary-dev libimobiledevice-dev
+          sudo apt-get install -y libplist-2.0-dev 2>/dev/null || true
+
+      - name: Install ldid
+        run: |
+          set -x
+          curl -fsSL -o /tmp/ldid.deb \
+            https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_linux_x86_64.deb
+          sudo dpkg -i /tmp/ldid.deb || sudo apt-get -f install -y
+          ldid -v
 
       - name: Checkout theos
         run: |
@@ -43,12 +41,14 @@ jobs:
           export THEOS=/opt/theos
           mkdir -p "$THEOS/sdks"
           cd "$THEOS/sdks"
-          curl -fsSL -o iPhoneOS16.5.sdk.tar.xz \
-            https://github.com/theos/sdks/releases/download/master/iPhoneOS16.5.sdk.tar.xz \
-            || curl -fsSL -o iPhoneOS16.5.sdk.tar.xz \
-               https://github.com/xybp888/iOS-SDKs/raw/master/iPhoneOS16.5.sdk.tar.xz
-          tar -xJf iPhoneOS16.5.sdk.tar.xz
-          rm -f iPhoneOS16.5.sdk.tar.xz
+          curl -fsSL -o sdk.tar.xz \
+            https://github.com/theos/sdks/archive/refs/heads/master.tar.gz || true
+          if file sdk.tar.xz | grep -q gzip; then
+            mv sdk.tar.xz sdk.tar.gz && tar -xzf sdk.tar.gz --strip-components=1 --wildcards '*/iPhoneOS*.sdk'
+          else
+            tar -xJf sdk.tar.xz
+          fi
+          rm -f sdk.tar.*
           ls -d "$THEOS/sdks"/*
           echo "THEOS=$THEOS" >> "$GITHUB_ENV"
 
