@@ -1,0 +1,8 @@
+Package: com.trollagent.helloworld
+Name: HelloWorld
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: HelloWorld test tweak (TrollAgent CI)
+Maintainer: TrollAgent
+Author: TrollAgent
+Section: Tweaks
