@@ -51,6 +51,17 @@ jobs:
           ls -d "$THEOS/sdks"/*
           echo "THEOS=$THEOS" >> "$GITHUB_ENV"
 
+      - name: Link system toolchain into theos
+        run: |
+          export THEOS=/opt/theos
+          mkdir -p "$THEOS/toolchain/linux/iphone/bin"
+          for t in clang clang++ ld ldid strip; do
+          p=$(command -v "$t" || true)
+          [ -n "$p" ] && ln -sf "$p" "$THEOS/toolchain/linux/iphone/bin/$t"
+          done
+          ln -sf "$(command -v clang)" "$THEOS/toolchain/linux/iphone/bin/clang++" || true
+          ls -l "$THEOS/toolchain/linux/iphone/bin/"
+
       - name: Build tweak
         working-directory: tweaks/${{ inputs.tweak }}
         run: |
