@@ -24,10 +24,11 @@ jobs:
       - name: Install ldid
         run: |
           set -x
-          curl -fsSL -o /tmp/ldid.deb \
-            https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus7/ldid_linux_x86_64.deb
-          sudo dpkg -i /tmp/ldid.deb || sudo apt-get -f install -y
-          ldid -v
+          curl -fsSL -o /tmp/ldid \
+          https://github.com/ProcursusTeam/ldid/releases/download/v2.1.5-procursus8/ldid_linux_x86_64
+          sudo install -m 0755 /tmp/ldid /usr/local/bin/ldid
+          ldid -v 2>&1 | head -5 || true
+          command -v ldid
 
       - name: Checkout theos
         run: |
