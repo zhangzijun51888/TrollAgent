@@ -10,35 +10,29 @@ on:
 
 jobs:
   build:
-    runs-on: macos-14
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/theos/theos:latest
+      options: --privileged
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout theos
-        uses: actions/checkout@v4
         with:
-          repository: theos/theos
-          path: theos
-          fetch-depth: 1
           submodules: recursive
-      - name: Prepare theos SDK
-        run: |
-          export THEOS="$GITHUB_WORKSPACE/theos"
-          mkdir -p "$THEOS/sdks"
-          ln -s "$(xcrun --sdk iphoneos --show-sdk-path)" "$THEOS/sdks/iPhoneOS17.5.sdk"
-          ls -l "$THEOS/bin/dm.pl" "$THEOS/sdks/"
-          brew install ldid dpkg >/dev/null 2>&1 || true
-          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
+
       - name: Build tweak
         working-directory: tweaks/${{ inputs.tweak }}
         run: |
-          export THEOS="$THEOS"
+          export THEOS=/opt/theos
           export THEOS_PACKAGE_SCHEME=rootless
-          make package
+          make package FINALPACKAGE=1
+
       - name: Verify artifacts
         working-directory: tweaks/${{ inputs.tweak }}
         run: |
           ls -lh .theos/obj/debug/ 2>/dev/null || true
+          ls -lh packages/ 2>/dev/null || true
           file .theos/obj/debug/*.dylib 2>/dev/null || true
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
