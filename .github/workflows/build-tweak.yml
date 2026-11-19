@@ -11,13 +11,36 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container:
-      image: ghcr.io/theos/theos:latest
-      options: --privileged
     steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang lld make git perl rsync \
+            libplist-utils libssl-dev libsubstrate-dvm libobjc-9-dev \
+            dpkg fakeroot xz-utils zip unzip curl
+          sudo apt-get install -y libobjc4 || true
+
+      - name: Checkout theos
+        run: |
+          sudo git clone --recursive --depth 1 https://github.com/theos/theos.git /opt/theos
+          sudo chown -R "$(id -u):$(id -g)" /opt/theos
+
+      - name: Prepare theos SDK
+        run: |
+          export THEOS=/opt/theos
+          mkdir -p "$THEOS/sdks"
+          cd "$THEOS/sdks"
+          curl -fsSL -o iPhoneOS16.5.sdk.tar.xz \
+            https://github.com/theos/sdks/releases/download/master/iPhoneOS16.5.sdk.tar.xz \
+            || curl -fsSL -o iPhoneOS16.5.sdk.tar.xz \
+               https://github.com/xybp888/iOS-SDKs/raw/master/iPhoneOS16.5.sdk.tar.xz
+          tar -xJf iPhoneOS16.5.sdk.tar.xz
+          rm -f iPhoneOS16.5.sdk.tar.xz
+          ls -d "$THEOS/sdks"/*
+          echo "THEOS=$THEOS" >> "$GITHUB_ENV"
 
       - name: Build tweak
         working-directory: tweaks/${{ inputs.tweak }}
