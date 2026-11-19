@@ -19,9 +19,19 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y clang lld make git perl rsync \
-            libplist-utils libssl-dev libsubstrate-dvm libobjc-9-dev \
-            dpkg fakeroot xz-utils zip unzip curl
-          sudo apt-get install -y libobjc4 || true
+            libplist-utils libssl-dev dpkg fakeroot xz-utils zip unzip curl \
+            gnupg ca-certificates
+          # theos 需要 ldid：优先用 deb 直装，失败则从源码编译
+          curl -fsSL -o /tmp/ldid.deb https://github.com/ProcursusTeam/ldid/releases/latest/download/ldid_linux_x86_64.deb || true
+          if [ -s /tmp/ldid.deb ]; then sudo dpkg -i /tmp/ldid.deb || true; fi
+          command -v ldid || echo "ldid missing, will build from source"
+          sudo git clone --depth 1 https://github.com/ProcursusTeam/ldid.git /tmp/ldid-src || true
+          if ! command -v ldid && [ -d /tmp/ldid-src ]; then
+            cd /tmp/ldid-src && sudo git submodule update --init --recursive
+            sudo make -j"$(nproc)" || true
+            sudo cp ldid /usr/local/bin/ldid || true
+          fi
+          ldid -v || true
 
       - name: Checkout theos
         run: |
